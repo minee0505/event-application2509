@@ -1,6 +1,7 @@
-
 // 이벤트를 등록하는 함수
-import {redirect} from "react-router-dom";
+
+import {redirect} from 'react-router-dom';
+import {EVENT_API_URL} from '../config/host-config.js';
 
 export const saveAction = async ({ request, params }) => {
     // console.log('save action!!');
@@ -16,7 +17,7 @@ export const saveAction = async ({ request, params }) => {
         imageUrl: formData.get('image')
     };
 
-    let requestUrl = 'http://localhost:9000/api/events';
+    let requestUrl = EVENT_API_URL;
     if (request.method === 'PUT') {
         requestUrl += `/${params.eventId}`;
     }
@@ -35,17 +36,15 @@ export const saveAction = async ({ request, params }) => {
 
     // 목록페이지로 리다이렉트
     return redirect('/events');
-
 };
 
-// 이벤트 삭제 함수
+// 삭제처리 액션 함수
 export const deleteAction = async ({params}) => {
-
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
-    console.log('삭제 액션 함수 호출')
+    console.log('삭제 액션 함수 호출!');
 
-    const res = await fetch(`http://localhost:9000/api/events/${params.eventId}`, {
+    const res = await fetch(`${EVENT_API_URL}/${params.eventId}`, {
         method: 'DELETE'
     });
 

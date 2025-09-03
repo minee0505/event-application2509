@@ -1,14 +1,16 @@
 import {createBrowserRouter} from 'react-router-dom';
 import ErrorPage from '../pages/ErrorPage.jsx';
-import HomePage from '../pages/HomePage.jsx';
 import EventPage from '../pages/EventPage.jsx';
 import RootLayout from '../layouts/RootLayout.jsx';
 import EventDetailPage from '../pages/EventDetailPage.jsx';
 import EventLayout from '../layouts/EventLayout.jsx';
-import {eventListLoader, eventDetailLoader} from "../loader/events-loader.js";
-import NewEventPage from "../pages/NewEventPage.jsx";
-import {saveAction as manipulateAction, deleteAction} from "../loader/events-action.js";
-import EditPage from "../pages/EditPage.jsx";
+import {eventDetailLoader} from '../loader/events-loader.js';
+import {deleteAction, saveAction as manipulateAction} from '../loader/events-action.js';
+import NewEventPage from '../pages/NewEventPage.jsx';
+import EditPage from '../pages/EditPage.jsx';
+import HomeLayout from '../layouts/HomeLayout.jsx';
+import WelcomePage from '../pages/WelcomePage.jsx';
+import SignUpPage from '../pages/SignUpPage.jsx';
 
 const router = createBrowserRouter([
     {
@@ -17,8 +19,18 @@ const router = createBrowserRouter([
         errorElement: <ErrorPage/>,
         children: [
             {
-                index: true,
-                element: <HomePage/>
+                path: '',
+                element: <HomeLayout />,
+                children: [
+                    {
+                        index: true,
+                        element: <WelcomePage />
+                    },
+                    {
+                        path: '/sign-up',
+                        element: <SignUpPage />
+                    }
+                ]
             },
             {
                 path: 'events',
@@ -27,13 +39,13 @@ const router = createBrowserRouter([
                     {
                         index: true,
                         element: <EventPage/>,
-                        // loader 함수는 언제 실행되냐? 페이지가 라우팅 될 때 트리거됨
+                        // loader함수는 언제 실행되냐? 페이지가 라우팅될 때 트리거됨
                         // loader: eventListLoader
                     },
                     {
                         path: 'new',
                         element: <NewEventPage />,
-                        // action 함수는 CUD를 트리거
+                        // action함수는 CUD를 트리거
                         action: manipulateAction
                     },
                     {
@@ -44,7 +56,7 @@ const router = createBrowserRouter([
                     },
                     {
                         path: ':eventId/edit',
-                        element: <EditPage/>,
+                        element: <EditPage />,
                         loader: eventDetailLoader,
                         action: manipulateAction
                     },
