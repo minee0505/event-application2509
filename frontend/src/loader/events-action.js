@@ -2,6 +2,7 @@
 
 import {redirect} from 'react-router-dom';
 import {AUTH_API_URL, EVENT_API_URL} from '../config/host-config.js';
+import { getUserToken } from './events-loader.js';
 
 export const saveAction = async ({ request, params }) => {
     // console.log('save action!!');
@@ -25,7 +26,8 @@ export const saveAction = async ({ request, params }) => {
     const response = await fetch(requestUrl, {
         method: request.method,
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getUserToken()
         },
         body: JSON.stringify(payload)
     });
@@ -52,7 +54,7 @@ export const deleteAction = async ({params}) => {
 };
 
 // 로그인 처리 액션함수
-export const loginAction = async ( { request }) => {
+export const loginAction = async ({ request }) => {
 
     // 입력데이터 읽기
     const formData = await request.formData();
@@ -71,8 +73,8 @@ export const loginAction = async ( { request }) => {
     const data = await response.json();
 
     if (response.status === 422) {
-        // 서버에서 응답한 데이터를 컴포넌트에서 가져다 사용할 수 있게 데이터를 리턴
-        // 그럼 액션함수를 처리하는 컴포넌트는 useActionData라는 훅으로 사용가능
+        // 서버에서 응답한 데이터를 컴포넌트에서 가져다 사용할 수 있게 데이터를 리턴.
+        // 그럼 action함수를 처리하는 컴포넌트는 useActionData라는 훅으로 사용가능
         return data.message;
     }
 
@@ -85,10 +87,10 @@ export const loginAction = async ( { request }) => {
 
 // 로그아웃 처리 액션
 export const logoutAction = () => {
-    console.log('logout action!!')
+    console.log('logout action!!');
 
     localStorage.removeItem('userData');
 
-    // element가 없는 route path의 액션이나 로더함수는 반드시 리다이렉트를 필수로 사용
+    // element가 없는 route path의 액션이나 로더함수는 반드시 redirect를 필수로 사용
     return redirect('/');
-}
+};
