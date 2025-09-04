@@ -4,6 +4,7 @@ import com.study.event.domain.dto.request.LoginRequest;
 import com.study.event.domain.dto.request.SignupRequest;
 import com.study.event.domain.entity.EmailVerification;
 import com.study.event.domain.entity.EventUser;
+import com.study.event.jwt.JwtTokenProvider;
 import com.study.event.repository.EmailVerificationRepository;
 import com.study.event.repository.EventUserRepository;
 import jakarta.mail.internet.MimeMessage;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -35,6 +37,8 @@ public class EventUserService {
 
     private final EventUserRepository eventUserRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+
+    private final JwtTokenProvider tokenProvider;
 
     // 이메일 중복확인 처리
     @Transactional(readOnly = true)
@@ -214,27 +218,36 @@ public class EventUserService {
     }
 
     // 로그인 검증하기
-    public void authenticate(LoginRequest dto) {
+    public Map<String, Object> authenticate(LoginRequest dto) {
 
-        //이메일을 통해 회원가입 여부 확인
-        EventUser foundUser = eventUserRepository.findByEmail(dto.email()).orElseThrow(
+        // 이메일을 통해 회원가입 여부 확인
+        EventUser foundUser
+                = eventUserRepository.findByEmail(dto.email()).orElseThrow(
                 () -> new RuntimeException("가입된 회원이 아닙니다.")
         );
 
-        // 이메일 인증을 안했거나, 패스워드 입력단계를 수행하지 않은 회원
+        // 회원가입을 중단한 회원에 대해서
         if (!foundUser.isEmailVerified() || foundUser.getPassword() == null) {
             throw new RuntimeException("회원가입이 완료되지 않은 회원입니다. 다시 가입해주세요.");
         }
-
         // 패스워드 일치 검사
         if (!passwordEncoder.matches(dto.password(), foundUser.getPassword())) {
             throw new RuntimeException("비밀번호가 틀렸습니다.");
         }
 
         // 로그인 성공 - 토큰 발급
+        String accessToken = tokenProvider.createAccessToken(dto.email());
 
-
+        return Map.of(
+                "token", accessToken,
+                "message", "로그인에 성공했습니다.",
+                "email", dto.email(),
+                "role", foundUser.getRole().toString()
+        );
     }
+
+
+
 }
 
 

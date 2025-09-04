@@ -62,16 +62,12 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest dto) {
 
         try {
-            eventUserService.authenticate(dto);
-            return ResponseEntity.ok().body(Map.of(
-               "message", "로그인이 성공했습니다."
-            ));
-        }catch (RuntimeException e) {
+            return ResponseEntity.ok().body(eventUserService.authenticate(dto));
+        } catch (RuntimeException e) {
             return ResponseEntity.status(422).body(Map.of(
                     "message", e.getMessage()
             ));
         }
-
     }
 
 }
