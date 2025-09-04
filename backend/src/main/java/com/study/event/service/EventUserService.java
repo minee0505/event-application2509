@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class EventUserService {
 
     // 이메일 발송을 위한 의존객체
     private final JavaMailSender mailSender;
+    private final PasswordEncoder passwordEncoder;
 
     private final EventUserRepository eventUserRepository;
     private final EmailVerificationRepository emailVerificationRepository;
@@ -63,7 +65,7 @@ public class EventUserService {
         EmailVerification verification = EmailVerification.builder()
                 .verificationCode(code)
                 .expiryDate(LocalDateTime.now().plusMinutes(5)) // 만료시간 5분 설정
-                .eventUser(savedUser)   //FK 설정
+                .eventUser(savedUser) // FK 설정
                 .build();
         emailVerificationRepository.save(verification);
     }
@@ -88,7 +90,7 @@ public class EventUserService {
             messageHelper.setFrom(mailHost);
 
             // 이메일 제목 설정
-            messageHelper.setSubject("[인증메일] 미니스터디 가입 인증 메일입니다.");
+            messageHelper.setSubject("[인증메일] 중앙정보스터디 가입 인증 메일입니다.");
             // 이메일 내용 설정
             messageHelper.setText(
                     "인증 코드: <b style=\"font-weight: 700; letter-spacing: 5px; font-size: 30px;\">" + code + "</b>"
@@ -113,18 +115,23 @@ public class EventUserService {
         return String.valueOf((int) (Math.random() * 9000) + 1000);
     }
 
+
+    /**
+     * 클라이언트가 전송한 인증코드를 검증하는 처리
+     */
     public boolean isMatchCode(String email, String code) {
 
         // 이메일을 통해 사용자의 PK를 조회
         EventUser eventUser = eventUserRepository.findByEmail(email).orElseThrow();
 
         // 사용자의 인증코드를 FK를 통해 데이터베이스에서 조회
-        EmailVerification verification = emailVerificationRepository.findByEventUser(eventUser).orElseThrow();
+        EmailVerification verification
+                = emailVerificationRepository.findByEventUser(eventUser).orElseThrow();
 
         // 코드가 일치하고 만료시간이 지나지 않았는지 체크
         if (
                 code.equals(verification.getVerificationCode())
-                && verification.getExpiryDate().isAfter(LocalDateTime.now())
+                        && verification.getExpiryDate().isAfter(LocalDateTime.now())
         ) {
             // 이메일 인증 완료처리
             eventUser.completeVerifying();
@@ -137,11 +144,10 @@ public class EventUserService {
         }
         // 인증코드가 틀렸거나 만료된 경우 자동으로 인증코드를 재발송
         updateVerificationCode(email, verification);
-
         return false;
     }
 
-    //인증코드 재발급 처리
+    // 인증코드 재발급 처리
     private void updateVerificationCode(String email, EmailVerification verification) {
 
         // 1. 새인증코드를 생성하고 메일을 재발송
@@ -152,14 +158,27 @@ public class EventUserService {
         emailVerificationRepository.save(verification);
     }
 
+
     // 회원가입 마무리 처리
     public void confirmSignup(SignupRequest dto) {
 
         // 임시 회원가입된 회원정보를 조회
-        EventUser foundUser = eventUserRepository.findByEmail(dto.email()).orElseThrow();
+        EventUser foundUser = eventUserRepository.findByEmail(dto.email()).orElseThrow(
+                () -> new RuntimeException("임시 회원가입된 정보가 없습니다.")
+        );
+        // 이메일인증을 받았는지 확인
+        if (!foundUser.isEmailVerified()) {
+            throw new RuntimeException("이메일 인증이 완료되지 않은 회원입니다.");
+        }
 
-        // 데이터베이스에 임시회원가입된 회원정보의 패스워드와 생성시간을 채워넣기
-        foundUser.confirm(dto.password());
+        // 데이터베이스에 임시 회원가입된 회원정보의 패스워드와 생성시간을 채워넣기
+        foundUser.confirm(passwordEncoder.encode(dto.password()));
         eventUserRepository.save(foundUser);
     }
 }
+
+
+
+
+
+
